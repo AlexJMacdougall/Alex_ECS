@@ -1,0 +1,5 @@
+build/external/**
+build/build_files/**
+bin/**
+.vs/**
+ECS_Clean.sln
