@@ -55,12 +55,6 @@ void SystemManager::Update(float dt)
 	Vec2 playerPos = m_RegistryPtr->GetComponent<Transform2D>(0)->position;
 	Vec2 playerPos2 = m_RegistryPtr->GetComponent<Transform2D>(1)->position;
 
-	if (IsKeyPressed(KEY_SPACE))
-	{
-		std::cout << "Space!" << std::endl;
-		AddImpulse(0, Vec2{ 0,-10 }, 3.0f);
-	}
-
 	RayCast(Vec2{ 100,100 }, Vec2{ 500,500 }, 50);
 
 	PhysicsUpdate(dt);
