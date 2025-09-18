@@ -39,8 +39,7 @@ void SystemManager::ResetGame()
 	m_RegistryPtr->AddComponent<Sprite>(Player, playerSprite);
 	m_RegistryPtr->AddComponent<Sprite>(Player2, playerSprite);
 
-	Physics2D playerPhysics = Physics2D{ 10.0f,100.0f };
-	playerPhysics.enableGravity = false;
+	Physics2D playerPhysics = Physics2D{ 10.0f, 50.0f };
 
 	m_RegistryPtr->AddComponent<Physics2D>(Player, playerPhysics);
 
@@ -50,8 +49,6 @@ void SystemManager::ResetGame()
 
 void SystemManager::Update(float dt)
 {
-	//std::cout << m_RegistryPtr->GetComponent<Physics2D>(0)->velocity.x << " " << m_RegistryPtr->GetComponent<Physics2D>(0)->velocity.y << std::endl;
-
 	Vec2 playerPos = m_RegistryPtr->GetComponent<Transform2D>(0)->position;
 	Vec2 playerPos2 = m_RegistryPtr->GetComponent<Transform2D>(1)->position;
 
@@ -79,23 +76,37 @@ void SystemManager::PhysicsUpdate(float dt)
 		Physics2D* PhysObject = m_RegistryPtr->GetComponent<Physics2D>(entity);
 		Transform2D* transform = m_RegistryPtr->GetComponent<Transform2D>(entity);
 
-		//Calculate acceleration from force
-		PhysObject->acceleration.x = PhysObject->force.x / PhysObject->mass;
-		PhysObject->acceleration.y = PhysObject->force.y / PhysObject->mass;
+		//Resolve forces
+		Vec2 force = Vec2Minus(PhysObject->positiveForce, PhysObject->negativeForce);
 
-		//Apply gravity if not grounded
-		if(PhysObject->enableGravity && !PhysObject->grounded)
-		{
-			AddConstantForce(entity, Vec2{ 0.0f,100.0f });
-		}
+		//Calculate Weight
+		float weight = PhysObject->mass * GRAVITY;
+
+		//Apply weight 
+		if (PhysObject->enableGravity) { SetConstantForce(entity, Vec2{ 0.0f,weight }); }
+
+		//Calculate acceleration from force
+		PhysObject->acceleration.x = force.x / PhysObject->mass;
+		PhysObject->acceleration.y = force.y / PhysObject->mass;
 
 		//Calculate Velocity from acceleration
-		PhysObject->velocity.x = PhysObject->velocity.x + PhysObject->acceleration.x * dt;
-		PhysObject->velocity.y = PhysObject->velocity.y + PhysObject->acceleration.y * dt;
+		PhysObject->velocity.x += PhysObject->acceleration.x * dt;
+		PhysObject->velocity.y += PhysObject->acceleration.y * dt;
+
+		//Calculate drag
+		float drag_X = PhysObject->drag * -1*(AIR_DENSITY * PhysObject->velocity.x) / 2;
+		float drag_Y = PhysObject->drag * -1*(AIR_DENSITY * PhysObject->velocity.y) / 2;
+
+		//Apply Drag
+		SetConstantForce(entity, Vec2{ drag_X,drag_Y });
 
 		//Update position
-		transform->position.x = transform->position.x + PhysObject->velocity.x * dt;
-		transform->position.y = transform->position.y + PhysObject->velocity.y * dt;
+		transform->position.x += PhysObject->velocity.x * dt;
+		transform->position.y += PhysObject->velocity.y * dt;
+
+		std::cout << "Vel: (" << PhysObject->velocity.x << ", " << PhysObject->velocity.y << ")"
+			<< "Acc: (" << PhysObject->acceleration.x << ", " << PhysObject->acceleration.y << ")"
+			<< "Force: (" << force.x << ", " << force.y << ")" << std::endl;
 	}
 }
 
@@ -373,11 +384,25 @@ float SystemManager::GetDistance(Entity entity1, Entity entity2)
 	return dist;
 }
 
-void SystemManager::AddConstantForce(Entity entity, Vec2 force)
+
+void SystemManager::AddForce(Entity entity, Vec2 force)
 {
 	Physics2D* physicsComp = m_RegistryPtr->GetComponent<Physics2D>(entity);
 
-	physicsComp->force = Vec2Add(force,physicsComp->force);
+	if (force.x > 0) { physicsComp->positiveForce.x += force.x; }
+	else { physicsComp->negativeForce.x += abs(force.x); }
+	if (force.y > 0) { physicsComp->positiveForce.x += force.y; }
+	else{ physicsComp->negativeForce.y += abs(force.y); }
+}
+
+void SystemManager::SetConstantForce(Entity entity, Vec2 force)
+{
+	Physics2D* physicsComp = m_RegistryPtr->GetComponent<Physics2D>(entity);
+
+	if (force.x > 0) { physicsComp->positiveForce.x = std::max(force.x,physicsComp->positiveForce.x); }
+	else { physicsComp->negativeForce.x = std::max(abs(force.x), physicsComp->negativeForce.x); }
+	if (force.y > 0) { physicsComp->positiveForce.y = std::max(force.y, physicsComp->positiveForce.y); }
+	else { physicsComp->negativeForce.y = std::max(abs(force.y), physicsComp->negativeForce.y); }
 }
 
 Camera2D* SystemManager::GetCamera()
