@@ -11,6 +11,8 @@
 #include "Registry.hpp"
 #include "Components/ScriptComponent.hpp"
 
+#include "Scripts/PlayerScript.hpp"
+
 using Entity = std::uint32_t;
 
 const int NUM_OF_SPRITESHEETS = 1;
@@ -38,14 +40,13 @@ public:
 	float GetDistance(Entity entity1, Entity entity2);
 
 	void AddForce(Entity entity, Vec2 force);
-	void SetConstantForce(Entity entity, Vec2 force);
 
 	float LinearInterp(float pos, Vec2 start, Vec2 end);
 	float RayCast(Vec2 start, Vec2 end,int steps);
 
 	Camera2D* GetCamera();
 
-	std::vector<std::pair<Entity,Vec2>> Check_AABB_Collision(Entity entity);
+	std::vector<std::pair<Entity,int>> Check_AABB_Collision(Entity entity);
 	float AABB_Overlap(Entity colliderA,Entity colliderB);
 	std::set<Entity> circleCollision(Entity entity);
 
@@ -59,6 +60,14 @@ private:
 	int screenWidth = 1280;
 	int screenHeight = 720;
 
+
+	enum collisionDirection //Used in collision detection
+	{
+		Top,
+		Bottom,
+		Left,
+		Right
+	};
 
 	//SpriteSheets
 	std::vector<SpriteSheet> m_SpriteSheets;

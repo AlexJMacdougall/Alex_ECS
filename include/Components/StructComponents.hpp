@@ -20,8 +20,7 @@ struct Physics2D
 	bool enableGravity = true;
 	Vec2 velocity = { 0,0 };
 	Vec2 acceleration = { 0,0 };
-	Vec2 negativeForce = { 0,0 };
-	Vec2 positiveForce = { 0,0 };
+	Vec2 force = { 0,0 };
 };
 
 struct Impulse

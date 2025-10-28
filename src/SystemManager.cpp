@@ -39,7 +39,13 @@ void SystemManager::ResetGame()
 	m_RegistryPtr->AddComponent<Sprite>(Player, playerSprite);
 	m_RegistryPtr->AddComponent<Sprite>(Player2, playerSprite);
 
-	Physics2D playerPhysics = Physics2D{ 10.0f, 50.0f };
+	PlayerScript *playerScript = new PlayerScript(Player,m_RegistryPtr);
+
+	ScriptComponent playerScriptComponent;
+	playerScriptComponent.attachScript<PlayerScript>(*playerScript);
+	m_RegistryPtr->AddComponent<ScriptComponent>(Player, playerScriptComponent);
+
+	Physics2D playerPhysics = Physics2D{ 10.0f, 1000.0f };
 
 	m_RegistryPtr->AddComponent<Physics2D>(Player, playerPhysics);
 
@@ -54,9 +60,9 @@ void SystemManager::Update(float dt)
 
 	RayCast(Vec2{ 100,100 }, Vec2{ 500,500 }, 50);
 
-	PhysicsUpdate(dt);
-
 	RunScripts(dt);
+
+	PhysicsUpdate(dt);
 
 	Animate(dt);
 
@@ -74,29 +80,64 @@ void SystemManager::PhysicsUpdate(float dt)
 		Physics2D* PhysObject = m_RegistryPtr->GetComponent<Physics2D>(entity);
 		Transform2D* transform = m_RegistryPtr->GetComponent<Transform2D>(entity);
 
-		//Resolve forces
-		Vec2 force = Vec2Minus(PhysObject->positiveForce, PhysObject->negativeForce);
-
 		//Calculate Weight
 		float weight = PhysObject->mass * GRAVITY;
 
 		//Apply weight 
-		if (PhysObject->enableGravity) { SetConstantForce(entity, Vec2{ 0.0f,weight }); }
+		if (PhysObject->enableGravity) { AddForce(entity, Vec2{ 0.0f,weight }); }
 
+		//Calculate drag
+		float drag_X = PhysObject->drag * -1 * (AIR_DENSITY * PhysObject->velocity.x) / 2;
+		float drag_Y = PhysObject->drag * -1 * (AIR_DENSITY * PhysObject->velocity.y) / 2;
+
+		//Apply Drag
+		AddForce(entity, Vec2{ drag_X,drag_Y });
+
+		std::vector<std::pair<Entity, int>> collisions = Check_AABB_Collision(entity);
+
+		//Check collisions
+		if(collisions.size() != 0) //This is ugly make it better
+		{
+			for(std::pair<Entity, int> collider : collisions)
+			{
+				int collisionAxis = collider.second;
+
+				switch (collisionAxis)
+				{
+				case Top:
+					std::cout << "Top" << std::endl;
+					PhysObject->velocity.y = std::min(PhysObject->velocity.y, 0.0f);
+					PhysObject->force.y = std::min(PhysObject->force.y, 0.0f);
+					break;
+				case Bottom:
+					std::cout << "Bottom" << std::endl;
+					PhysObject->velocity.y = std::max(PhysObject->velocity.y, 0.0f);
+					PhysObject->force.y = std::max(PhysObject->force.y, 0.0f);
+					break;
+				case Left:
+					std::cout << "Left" << std::endl;
+					PhysObject->velocity.x = std::min(PhysObject->velocity.x, 0.0f);
+					PhysObject->force.x = std::min(PhysObject->force.x, 0.0f);
+					break;
+				case Right:
+					std::cout << "Right" << std::endl;
+					PhysObject->velocity.x = std::max(PhysObject->velocity.x, 0.0f);
+					PhysObject->force.x = std::max(PhysObject->force.x, 0.0f);
+					break;
+				default:
+					assert(false); //If this assertion fails, a valid collision direction was not returned
+					break;
+				}
+			}
+		}
+		
 		//Calculate acceleration from force
-		PhysObject->acceleration.x = force.x / PhysObject->mass;
-		PhysObject->acceleration.y = force.y / PhysObject->mass;
+		PhysObject->acceleration.x = PhysObject->force.x / PhysObject->mass;
+		PhysObject->acceleration.y = PhysObject->force.y / PhysObject->mass;
 
 		//Calculate Velocity from acceleration
 		PhysObject->velocity.x += PhysObject->acceleration.x * dt;
 		PhysObject->velocity.y += PhysObject->acceleration.y * dt;
-
-		//Calculate drag
-		float drag_X = PhysObject->drag * -1*(AIR_DENSITY * PhysObject->velocity.x) / 2;
-		float drag_Y = PhysObject->drag * -1*(AIR_DENSITY * PhysObject->velocity.y) / 2;
-
-		//Apply Drag
-		SetConstantForce(entity, Vec2{ drag_X,drag_Y });
 
 		//Update position
 		transform->position.x += PhysObject->velocity.x * dt;
@@ -104,43 +145,20 @@ void SystemManager::PhysicsUpdate(float dt)
 		/*
 		std::cout << "Vel: (" << PhysObject->velocity.x << ", " << PhysObject->velocity.y << ")"
 			<< "Acc: (" << PhysObject->acceleration.x << ", " << PhysObject->acceleration.y << ")"
-			<< "Force: (" << force.x << ", " << force.y << ")" << std::endl;
+			<< "Force: (" << PhysObject->force.x << ", " << PhysObject->force.y << ")" << std::endl;
 		*/
 
-		std::vector<std::pair<Entity, Vec2>> collisions = Check_AABB_Collision(entity);
-
-		
-		if(collisions.size() != 0) //This is ugly make it better
-		{
-			for(std::pair<Entity, Vec2> collider : collisions)
-			{
-				Vec2 collisionAxis = collider.second;
-
-				if(collisionAxis.x)
-				{
-					PhysObject->velocity.x = 0;
-					PhysObject->negativeForce.x = 0;
-					PhysObject->positiveForce.x = 0;
-				}
-				else
-				{
-					PhysObject->velocity.y = 0;
-					PhysObject->negativeForce.y = 0;
-					PhysObject->positiveForce.y = 0;
-				}
-			}
-		}
-		
+		PhysObject->force = Vec2{ 0 }; //Reset temp forces
 	}
 }
 
 
-std::vector<std::pair<Entity,Vec2>> SystemManager::Check_AABB_Collision(Entity entity) 	//Returns a set of entities with AABB colliders that collide with the passed entity
+std::vector<std::pair<Entity,int>> SystemManager::Check_AABB_Collision(Entity entity) 	//Returns a set of entities with AABB colliders that collide with the passed entity
 {
 	std::set entities = m_RegistryPtr->GetEntitiesWithComponent<BoxCollider>();
 	entities.erase(entity); //Remove passed entity so it wont collide with itself
 
-	std::vector<std::pair<Entity, Vec2>> collidingEntities = {};
+	std::vector<std::pair<Entity, int>> collidingEntities = {};
 
 	auto pos1 = m_RegistryPtr->GetComponent<Transform2D>(entity)->position;
 	auto collider1 = m_RegistryPtr->GetComponent<BoxCollider>(entity);
@@ -168,24 +186,39 @@ std::vector<std::pair<Entity,Vec2>> SystemManager::Check_AABB_Collision(Entity e
 			(upper1 <= lower2) &&
 			(lower1 >= upper2))
 		{
-			
-			Vec2 collisionDirectionVector = Vec2{ 0 }; //Vector that represents the collision axis
-			float xOverlap = std::min(abs(right1 - left2), abs(left1 - right2));
-			float yOverlap = std::min(abs(upper1 - lower2), abs(lower1 - upper2));
 
-			if(xOverlap < yOverlap)
+			collisionDirection direction;
+
+			float rightOverlap = abs(left1 - right2);   //Overlap when collider1 is approaching from the right of collider 2
+			float leftOverlap = abs(right1 - left2);    //Overlap when collider1 is approaching from the left of collider 2
+			float topOverlap = abs(lower1 - upper2);    //Overlap when collider1 is approaching from above collider 2
+			float bottomOverlap = abs(upper1 - lower2); //Overlap when collider1 is approaching from below collider 2
+
+			float minOverlapValue = std::min(std::min(rightOverlap, leftOverlap), std::min(topOverlap, bottomOverlap)); //Smallest overlap value is most recent, therefore is axis of collision
+			
+
+			if(minOverlapValue == topOverlap) 
 			{
-				
-				std::cout << "X Collision" << std::endl;
-				collisionDirectionVector.x = 1; 
+				direction = Top;
+			}
+			else if(minOverlapValue == bottomOverlap)
+			{
+				direction = Bottom;
+			}
+			else if (minOverlapValue == rightOverlap)
+			{
+				direction = Right;
+			}
+			else if (minOverlapValue == leftOverlap)
+			{
+				direction = Left;
 			}
 			else
 			{
-				std::cout << "Y Collision" << std::endl;
-				collisionDirectionVector.y = 1;
+				assert(false); //If this assertion fails, none of the collision directions are true
 			}
 
-		collidingEntities.push_back(std::make_pair(colliderEntity, collisionDirectionVector));
+		collidingEntities.push_back(std::make_pair(colliderEntity, direction));
 		}
 	}
 	return collidingEntities;
@@ -435,20 +468,7 @@ void SystemManager::AddForce(Entity entity, Vec2 force)
 {
 	Physics2D* physicsComp = m_RegistryPtr->GetComponent<Physics2D>(entity);
 
-	if (force.x > 0) { physicsComp->positiveForce.x += force.x; }
-	else { physicsComp->negativeForce.x += abs(force.x); }
-	if (force.y > 0) { physicsComp->positiveForce.y += force.y; }
-	else{ physicsComp->negativeForce.y += abs(force.y); }
-}
-
-void SystemManager::SetConstantForce(Entity entity, Vec2 force)
-{
-	Physics2D* physicsComp = m_RegistryPtr->GetComponent<Physics2D>(entity);
-
-	if (force.x > 0) { physicsComp->positiveForce.x = std::max(force.x,physicsComp->positiveForce.x); }
-	else { physicsComp->negativeForce.x = std::max(abs(force.x), physicsComp->negativeForce.x); }
-	if (force.y > 0) { physicsComp->positiveForce.y = std::max(force.y, physicsComp->positiveForce.y); }
-	else { physicsComp->negativeForce.y = std::max(abs(force.y), physicsComp->negativeForce.y); }
+	physicsComp->force = Vec2Add(physicsComp->force, force);
 }
 
 Camera2D* SystemManager::GetCamera()
