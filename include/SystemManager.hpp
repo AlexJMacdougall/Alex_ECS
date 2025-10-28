@@ -45,7 +45,8 @@ public:
 
 	Camera2D* GetCamera();
 
-	std::set<Entity> AABB_Collision(Entity entity);
+	std::vector<std::pair<Entity,Vec2>> Check_AABB_Collision(Entity entity);
+	float AABB_Overlap(Entity colliderA,Entity colliderB);
 	std::set<Entity> circleCollision(Entity entity);
 
 private:

@@ -61,8 +61,6 @@ void SystemManager::Update(float dt)
 	Animate(dt);
 
 	Draw();
-
-	if (AABB_Collision(0).size() != 0) { std::cout << "Collision!" << std::endl; }
 }
 
 void SystemManager::PhysicsUpdate(float dt)
@@ -103,20 +101,46 @@ void SystemManager::PhysicsUpdate(float dt)
 		//Update position
 		transform->position.x += PhysObject->velocity.x * dt;
 		transform->position.y += PhysObject->velocity.y * dt;
-
+		/*
 		std::cout << "Vel: (" << PhysObject->velocity.x << ", " << PhysObject->velocity.y << ")"
 			<< "Acc: (" << PhysObject->acceleration.x << ", " << PhysObject->acceleration.y << ")"
 			<< "Force: (" << force.x << ", " << force.y << ")" << std::endl;
+		*/
+
+		std::vector<std::pair<Entity, Vec2>> collisions = Check_AABB_Collision(entity);
+
+		
+		if(collisions.size() != 0) //This is ugly make it better
+		{
+			for(std::pair<Entity, Vec2> collider : collisions)
+			{
+				Vec2 collisionAxis = collider.second;
+
+				if(collisionAxis.x)
+				{
+					PhysObject->velocity.x = 0;
+					PhysObject->negativeForce.x = 0;
+					PhysObject->positiveForce.x = 0;
+				}
+				else
+				{
+					PhysObject->velocity.y = 0;
+					PhysObject->negativeForce.y = 0;
+					PhysObject->positiveForce.y = 0;
+				}
+			}
+		}
+		
 	}
 }
 
 
-std::set<Entity> SystemManager::AABB_Collision(Entity entity) 	//Returns a set of entities with AABB colliders that collide with the passed entity
+std::vector<std::pair<Entity,Vec2>> SystemManager::Check_AABB_Collision(Entity entity) 	//Returns a set of entities with AABB colliders that collide with the passed entity
 {
 	std::set entities = m_RegistryPtr->GetEntitiesWithComponent<BoxCollider>();
 	entities.erase(entity); //Remove passed entity so it wont collide with itself
 
-	std::set<Entity> collidingEntities = {};
+	std::vector<std::pair<Entity, Vec2>> collidingEntities = {};
 
 	auto pos1 = m_RegistryPtr->GetComponent<Transform2D>(entity)->position;
 	auto collider1 = m_RegistryPtr->GetComponent<BoxCollider>(entity);
@@ -138,16 +162,38 @@ std::set<Entity> SystemManager::AABB_Collision(Entity entity) 	//Returns a set o
 
 		float upper2 = pos2.y - (collider2->height / 2);
 		float lower2 = pos2.y + (collider2->height / 2);
-
+		
 		if ((right1 >= left2) &&
 			(left1 <= right2) &&
 			(upper1 <= lower2) &&
 			(lower1 >= upper2))
 		{
-			collidingEntities.insert(colliderEntity);
+			
+			Vec2 collisionDirectionVector = Vec2{ 0 }; //Vector that represents the collision axis
+			float xOverlap = std::min(abs(right1 - left2), abs(left1 - right2));
+			float yOverlap = std::min(abs(upper1 - lower2), abs(lower1 - upper2));
+
+			if(xOverlap < yOverlap)
+			{
+				
+				std::cout << "X Collision" << std::endl;
+				collisionDirectionVector.x = 1; 
+			}
+			else
+			{
+				std::cout << "Y Collision" << std::endl;
+				collisionDirectionVector.y = 1;
+			}
+
+		collidingEntities.push_back(std::make_pair(colliderEntity, collisionDirectionVector));
 		}
 	}
 	return collidingEntities;
+}
+
+float SystemManager::AABB_Overlap(Entity colliderA,Entity colliderB)
+{
+	return 0.0f;
 }
 
 std::set<Entity> SystemManager::circleCollision(Entity entity) //Returns a set of entities with Circle colliders that collide with the passed entity
@@ -391,7 +437,7 @@ void SystemManager::AddForce(Entity entity, Vec2 force)
 
 	if (force.x > 0) { physicsComp->positiveForce.x += force.x; }
 	else { physicsComp->negativeForce.x += abs(force.x); }
-	if (force.y > 0) { physicsComp->positiveForce.x += force.y; }
+	if (force.y > 0) { physicsComp->positiveForce.y += force.y; }
 	else{ physicsComp->negativeForce.y += abs(force.y); }
 }
 
