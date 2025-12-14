@@ -46,6 +46,9 @@ public:
 	T* GetComponent(Entity entity);
 
 	template<typename T>
+	bool CheckEntityHasComponent(Entity entity);
+
+	template<typename T>
 	std::set<Entity> GetEntitiesWithComponent();
 private:
 	//Current number of entities and available entity IDs
@@ -127,9 +130,16 @@ inline T* Registry::GetComponent(Entity entity)
 {
 	//Check if entity has component of type T
 	//If you failed this assertion you tried to get a component from an entity that doesnt have one of that type
-	assert(m_Signatures->at(entity).test(m_typenameToComponentTypes[typeid(T).name()]));
+	assert(CheckEntityHasComponent<T>(entity));
 
 	return GetComponentArray<T>()->GetComponent(entity);
+}
+
+template<typename T>
+bool Registry::CheckEntityHasComponent(Entity entity)
+{
+	//Check if entity has component of type T
+	return m_Signatures->at(entity).test(m_typenameToComponentTypes[typeid(T).name()]);
 }
 
 template<typename T>

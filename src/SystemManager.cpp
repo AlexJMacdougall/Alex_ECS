@@ -36,7 +36,7 @@ void SystemManager::ResetGame()
 	m_RegistryPtr->AddComponent<Transform2D>(Player2, Transform2D{ Vec2{0,100},Vec2{1,1} });
 
 	Sprite playerSprite = Sprite{ {0,0},"TestTexture",0 };
-	m_RegistryPtr->AddComponent<Sprite>(Player, playerSprite);
+	//m_RegistryPtr->AddComponent<Sprite>(Player, playerSprite);
 	m_RegistryPtr->AddComponent<Sprite>(Player2, playerSprite);
 
 	PlayerScript *playerScript = new PlayerScript(Player,m_RegistryPtr);
@@ -45,20 +45,20 @@ void SystemManager::ResetGame()
 	playerScriptComponent.attachScript<PlayerScript>(*playerScript);
 	m_RegistryPtr->AddComponent<ScriptComponent>(Player, playerScriptComponent);
 
-	Physics2D playerPhysics = Physics2D{ 10.0f, 1000.0f };
+	Physics2D playerPhysics = Physics2D{ 10.0f, 100.0f, false };
 
 	m_RegistryPtr->AddComponent<Physics2D>(Player, playerPhysics);
 
-	m_RegistryPtr->AddComponent<BoxCollider>(Player,BoxCollider{32,32});
+	m_RegistryPtr->AddComponent<CircleCollider>(Player, CircleCollider{16});
+	//m_RegistryPtr->AddComponent<BoxCollider>(Player, BoxCollider{32,32});
 	m_RegistryPtr->AddComponent<BoxCollider>(Player2, BoxCollider{32,32});
 }
 
 void SystemManager::Update(float dt)
 {
-	Vec2 playerPos = m_RegistryPtr->GetComponent<Transform2D>(0)->position;
-	Vec2 playerPos2 = m_RegistryPtr->GetComponent<Transform2D>(1)->position;
-
-	RayCast(Vec2{ 100,100 }, Vec2{ 500,500 }, 50);
+	BeginDrawing();//DEBUG, DELETE ME. UNCOMMENT IN DRAW FUNCTION
+	BeginMode2D(camera);
+	ClearBackground(WHITE);
 
 	RunScripts(dt);
 
@@ -67,6 +67,9 @@ void SystemManager::Update(float dt)
 	Animate(dt);
 
 	Draw();
+
+	EndMode2D();
+	EndDrawing();//DEBUG, DELETE ME. UNCOMMENT IN DRAW FUNCTION
 }
 
 void SystemManager::PhysicsUpdate(float dt)
@@ -93,7 +96,18 @@ void SystemManager::PhysicsUpdate(float dt)
 		//Apply Drag
 		AddForce(entity, Vec2{ drag_X,drag_Y });
 
-		std::vector<std::pair<Entity, int>> collisions = Check_AABB_Collision(entity);
+		std::vector<std::pair<Entity, int>> collisions;
+		//this is bad make it better
+		if(m_RegistryPtr->CheckEntityHasComponent<BoxCollider>(entity))
+		{
+			collisions = AABB_Collision(entity);
+			//add box to circle collision here
+		}
+		else if(m_RegistryPtr->CheckEntityHasComponent<CircleCollider>(entity))
+		{
+			collisions = Circle_To_AABB_Collision(entity); 
+			//add circle to circle
+		}
 
 		//Check collisions
 		if(collisions.size() != 0) //This is ugly make it better
@@ -130,7 +144,7 @@ void SystemManager::PhysicsUpdate(float dt)
 				}
 			}
 		}
-		
+
 		//Calculate acceleration from force
 		PhysObject->acceleration.x = PhysObject->force.x / PhysObject->mass;
 		PhysObject->acceleration.y = PhysObject->force.y / PhysObject->mass;
@@ -153,17 +167,20 @@ void SystemManager::PhysicsUpdate(float dt)
 }
 
 
-std::vector<std::pair<Entity,int>> SystemManager::Check_AABB_Collision(Entity entity) 	//Returns a set of entities with AABB colliders that collide with the passed entity
+std::vector<std::pair<Entity,int>> SystemManager::AABB_Collision(Entity entity) 	//Returns a set of entities with AABB colliders that collide with the passed entity
 {
-	std::set entities = m_RegistryPtr->GetEntitiesWithComponent<BoxCollider>();
-	entities.erase(entity); //Remove passed entity so it wont collide with itself
+	std::set collidableEntities = m_RegistryPtr->GetEntitiesWithComponent<BoxCollider>();
+	collidableEntities.erase(entity); //Remove passed entity so it wont collide with itself
 
 	std::vector<std::pair<Entity, int>> collidingEntities = {};
+
+	//Check passed entity has a box collider
+	assert(m_RegistryPtr->CheckEntityHasComponent<BoxCollider>(entity));
 
 	auto pos1 = m_RegistryPtr->GetComponent<Transform2D>(entity)->position;
 	auto collider1 = m_RegistryPtr->GetComponent<BoxCollider>(entity);
 
-	for (Entity colliderEntity : entities)
+	for (Entity colliderEntity : collidableEntities)
 	{
 		auto pos2 = m_RegistryPtr->GetComponent<Transform2D>(colliderEntity)->position;
 		auto collider2 = m_RegistryPtr->GetComponent<BoxCollider>(colliderEntity);
@@ -224,13 +241,55 @@ std::vector<std::pair<Entity,int>> SystemManager::Check_AABB_Collision(Entity en
 	return collidingEntities;
 }
 
-float SystemManager::AABB_Overlap(Entity colliderA,Entity colliderB)
+std::vector<std::pair<Entity, int>> SystemManager::Circle_To_AABB_Collision(Entity entity) //this function is broken plz fix
 {
-	return 0.0f;
+	std::set<Entity> collidableEntities = m_RegistryPtr->GetEntitiesWithComponent<BoxCollider>();
+	collidableEntities.erase(entity);//Remove passed entity so it wont collide with itself
+
+	std::vector<std::pair<Entity, int>> collidingEntities = {};
+
+	//Check passed entity has a circle collider
+	assert(m_RegistryPtr->CheckEntityHasComponent<CircleCollider>(entity));
+
+	//Get circle centre and radius
+	Vec2 circleCentre = m_RegistryPtr->GetComponent<Transform2D>(entity)->position;
+	float circleRadius = m_RegistryPtr->GetComponent<CircleCollider>(entity)->radius;
+
+	for (Entity colliderEntity : collidableEntities)
+	{
+		//Get box extents and centre
+		Vec2 boxCentre = m_RegistryPtr->GetComponent<Transform2D>(colliderEntity)->position;
+		BoxCollider* collider = m_RegistryPtr->GetComponent<BoxCollider>(colliderEntity);
+		float halfBoxWidth = collider->width/2;
+		float halfBoxHeight = collider->height/2;
+
+		//Get difference vector between circle and box centres
+		Vec2 differenceVector = Vec2Minus(circleCentre, boxCentre);
+
+		//Get point of collision by clamping difference vector to box extents then adding to box position
+		Vec2 collisionPoint = Vec2Add(Vec2{ Clamp(differenceVector.x,-halfBoxWidth,halfBoxWidth),Clamp(differenceVector.y,-halfBoxHeight,halfBoxHeight) },boxCentre);
+
+		DrawCircle(collisionPoint.x, collisionPoint.y, 1, BLUE);
+		DrawLine(circleCentre.x, circleCentre.y, collisionPoint.x, collisionPoint.y, GREEN);
+
+		//Get distance between point of collision and circle centre
+		float distanceToEdgeSquard = pow((collisionPoint.x - circleCentre.x), 2) + pow((collisionPoint.y - circleCentre.y), 2);
+
+		std::cout << circleRadius << " " << distanceToEdgeSquard << std::endl;
+
+		//Check if distance to edge is less than radius
+		if(distanceToEdgeSquard <= pow(circleRadius,2))
+		{
+			std::cout << "Circle collision" << std::endl;
+		}
+	}
+
+	return collidingEntities;
 }
 
-std::set<Entity> SystemManager::circleCollision(Entity entity) //Returns a set of entities with Circle colliders that collide with the passed entity
+std::set<Entity> SystemManager::CircleCollision(Entity entity) //Returns a set of entities with Circle colliders that collide with the passed entity
 {
+	//NEED TO ADD DETECTING DIRECTION OF COLLISION 
 	std::set entities = m_RegistryPtr->GetEntitiesWithComponent<CircleCollider>();
 	entities.erase(entity); //Remove passed entity so it wont collide with itself
 
@@ -264,11 +323,11 @@ void SystemManager::RunScripts(float dt)
 
 void SystemManager::Draw()
 {
-	BeginDrawing();
+	//BeginDrawing();
 
-	ClearBackground(WHITE);
+	//ClearBackground(WHITE);
 
-	BeginMode2D(camera);
+	//BeginMode2D(camera);
 
 	//Get entities that are drawable
 	std::set<Entity> entities = m_RegistryPtr->GetEntitiesWithComponent<Sprite>();
@@ -319,9 +378,17 @@ void SystemManager::Draw()
 			}
 		}
 	}
-
-	EndMode2D();
-	EndDrawing();
+	//DEBUG//
+	//DRAWING TEMP PLAYER//
+	Vec2 playerPos = m_RegistryPtr->GetComponent<Transform2D>(0)->position;
+	DrawCircle(playerPos.x, playerPos.y, 16, GRAY);
+	DrawCircle(playerPos.x, playerPos.y, 1, RED);
+	//TEST RAYCAST//
+	RayCast(Vec2{ 100,100 }, Vec2{ 500,500 }, 400, 1);
+	//DEBUG//
+	
+	//EndMode2D();
+	//EndDrawing();
 }
 
 void SystemManager::Animate(float dt)
@@ -414,23 +481,23 @@ float SystemManager::LinearInterp(float pos,Vec2 start, Vec2 end)
 	return y1 + (((pos - x1) * (y2 - y1)) / (x2 - x1));
 }
 
-float SystemManager::RayCast(Vec2 start, Vec2 end,int steps)
+float SystemManager::RayCast(Vec2 start, Vec2 end,int steps,float radius)
 {
-	DrawCircle(start.x, start.y, 5, GREEN);
-	DrawCircle(end.x, end.y, 5, BLUE);
-
 	float stepDistanceX = (end.x - start.x) / steps;
 	float stepDistanceY = (end.y - start.y) / steps;
 
 	//If you failed this assertion you have too many steps in the raycast. You cannot have more steps than distance between the start and end points.
 	assert(stepDistanceX >= 1 && stepDistanceY >= 1);
 
-	for(int i = 1;i < steps; i++)
+	for(int i = 0;i <= steps; i++)
 	{
 		float newX = LinearInterp(stepDistanceX * i, start, end);
 		float newY = LinearInterp(stepDistanceY * i, start, end);
-		DrawCircle(start.x + newX, start.y + newY, 5, RED);
+		DrawCircle(start.x + newX, start.y + newY, radius, RED);
 	}
+
+	DrawCircle(start.x, start.y, radius, GREEN);
+	DrawCircle(end.x, end.y, radius, BLUE);
 
 	return 0.0f;
 }
@@ -463,6 +530,20 @@ float SystemManager::GetDistance(Entity entity1, Entity entity2)
 	return dist;
 }
 
+float SystemManager::Clamp(float value, float min, float max)
+{
+	return std::max(min, std::min(max,value));
+}
+
+float SystemManager::GetVectorMagnitude(Vec2 vector)
+{
+	return sqrt(GetVectorMagnitudeSquared(vector));
+}
+
+float SystemManager::GetVectorMagnitudeSquared(Vec2 vector)
+{
+	return(pow(vector.x, 2) * pow(vector.y, 2));
+}
 
 void SystemManager::AddForce(Entity entity, Vec2 force)
 {

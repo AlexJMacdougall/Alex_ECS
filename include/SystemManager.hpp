@@ -37,18 +37,21 @@ public:
 
 	SpriteSheet* GetSpriteSheet(std::string ID);
 
-	float GetDistance(Entity entity1, Entity entity2);
-
 	void AddForce(Entity entity, Vec2 force);
 
 	float LinearInterp(float pos, Vec2 start, Vec2 end);
-	float RayCast(Vec2 start, Vec2 end,int steps);
+	float RayCast(Vec2 start, Vec2 end,int steps,float radius);
 
 	Camera2D* GetCamera();
 
-	std::vector<std::pair<Entity,int>> Check_AABB_Collision(Entity entity);
-	float AABB_Overlap(Entity colliderA,Entity colliderB);
-	std::set<Entity> circleCollision(Entity entity);
+	std::vector<std::pair<Entity,int>> AABB_Collision(Entity entity);
+	std::vector<std::pair<Entity,int>> Circle_To_AABB_Collision(Entity entity);
+	std::set<Entity> CircleCollision(Entity entity);
+
+	float GetDistance(Entity entity1, Entity entity2);
+	float Clamp(float value, float min, float max);
+	float GetVectorMagnitude(Vec2 vector);
+	float GetVectorMagnitudeSquared(Vec2 vector);
 
 private:
 	Registry* m_RegistryPtr;
