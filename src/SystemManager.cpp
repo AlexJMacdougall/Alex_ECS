@@ -96,7 +96,7 @@ void SystemManager::PhysicsUpdate(float dt)
 		//Apply Drag
 		AddForce(entity, Vec2{ drag_X,drag_Y });
 
-		std::vector<std::pair<Entity, int>> collisions;
+		std::vector<std::pair<Entity, Vec2>> collisions;
 		//this is bad make it better
 		if(m_RegistryPtr->CheckEntityHasComponent<BoxCollider>(entity))
 		{
@@ -112,10 +112,10 @@ void SystemManager::PhysicsUpdate(float dt)
 		//Check collisions
 		if(collisions.size() != 0) //This is ugly make it better
 		{
-			for(std::pair<Entity, int> collider : collisions)
+			for(std::pair<Entity, Vec2> collider : collisions)
 			{
-				int collisionAxis = collider.second;
-
+				Vec2 collisionAxis = collider.second;
+				/*
 				switch (collisionAxis)
 				{
 				case Top:
@@ -141,7 +141,7 @@ void SystemManager::PhysicsUpdate(float dt)
 				default:
 					assert(false); //If this assertion fails, a valid collision direction was not returned
 					break;
-				}
+				}*/
 			}
 		}
 
@@ -167,12 +167,12 @@ void SystemManager::PhysicsUpdate(float dt)
 }
 
 
-std::vector<std::pair<Entity,int>> SystemManager::AABB_Collision(Entity entity) 	//Returns a set of entities with AABB colliders that collide with the passed entity
+std::vector<std::pair<Entity,Vec2>> SystemManager::AABB_Collision(Entity entity) 	//Returns a set of entities with AABB colliders that collide with the passed entity
 {
 	std::set collidableEntities = m_RegistryPtr->GetEntitiesWithComponent<BoxCollider>();
 	collidableEntities.erase(entity); //Remove passed entity so it wont collide with itself
 
-	std::vector<std::pair<Entity, int>> collidingEntities = {};
+	std::vector<std::pair<Entity, Vec2>> collidingEntities = {};
 
 	//Check passed entity has a box collider
 	assert(m_RegistryPtr->CheckEntityHasComponent<BoxCollider>(entity));
@@ -204,7 +204,7 @@ std::vector<std::pair<Entity,int>> SystemManager::AABB_Collision(Entity entity) 
 			(lower1 >= upper2))
 		{
 
-			collisionDirection direction;
+			Vec2 direction;
 
 			float rightOverlap = abs(left1 - right2);   //Overlap when collider1 is approaching from the right of collider 2
 			float leftOverlap = abs(right1 - left2);    //Overlap when collider1 is approaching from the left of collider 2
@@ -213,7 +213,7 @@ std::vector<std::pair<Entity,int>> SystemManager::AABB_Collision(Entity entity) 
 
 			float minOverlapValue = std::min(std::min(rightOverlap, leftOverlap), std::min(topOverlap, bottomOverlap)); //Smallest overlap value is most recent, therefore is axis of collision
 			
-
+			/*
 			if(minOverlapValue == topOverlap) 
 			{
 				direction = Top;
@@ -232,21 +232,21 @@ std::vector<std::pair<Entity,int>> SystemManager::AABB_Collision(Entity entity) 
 			}
 			else
 			{
-				assert(false); //If this assertion fails, none of the collision directions are true
-			}
+				assert(false); //If this assertion fails, none of the collision directions are true. This shouldn't happen on a collision
+			}*/
 
-		collidingEntities.push_back(std::make_pair(colliderEntity, direction));
+		collidingEntities.push_back(std::make_pair(colliderEntity, Vec2{0,0}));
 		}
 	}
 	return collidingEntities;
 }
 
-std::vector<std::pair<Entity, int>> SystemManager::Circle_To_AABB_Collision(Entity entity) //this function is broken plz fix
+std::vector<std::pair<Entity, Vec2>> SystemManager::Circle_To_AABB_Collision(Entity entity) 
 {
 	std::set<Entity> collidableEntities = m_RegistryPtr->GetEntitiesWithComponent<BoxCollider>();
 	collidableEntities.erase(entity);//Remove passed entity so it wont collide with itself
 
-	std::vector<std::pair<Entity, int>> collidingEntities = {};
+	std::vector<std::pair<Entity, Vec2>> collidingEntities = {};
 
 	//Check passed entity has a circle collider
 	assert(m_RegistryPtr->CheckEntityHasComponent<CircleCollider>(entity));
@@ -275,12 +275,12 @@ std::vector<std::pair<Entity, int>> SystemManager::Circle_To_AABB_Collision(Enti
 		//Get distance between point of collision and circle centre
 		float distanceToEdgeSquard = pow((collisionPoint.x - circleCentre.x), 2) + pow((collisionPoint.y - circleCentre.y), 2);
 
-		std::cout << circleRadius << " " << distanceToEdgeSquard << std::endl;
+		//std::cout << circleRadius << " " << distanceToEdgeSquard << std::endl;
 
 		//Check if distance to edge is less than radius
 		if(distanceToEdgeSquard <= pow(circleRadius,2))
 		{
-			std::cout << "Circle collision" << std::endl;
+			collidingEntities.push_back(std::make_pair(colliderEntity, Vec2{0}));
 		}
 	}
 

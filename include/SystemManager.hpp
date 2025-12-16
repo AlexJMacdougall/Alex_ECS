@@ -44,8 +44,8 @@ public:
 
 	Camera2D* GetCamera();
 
-	std::vector<std::pair<Entity,int>> AABB_Collision(Entity entity);
-	std::vector<std::pair<Entity,int>> Circle_To_AABB_Collision(Entity entity);
+	std::vector<std::pair<Entity,Vec2>> AABB_Collision(Entity entity);
+	std::vector<std::pair<Entity,Vec2>> Circle_To_AABB_Collision(Entity entity);
 	std::set<Entity> CircleCollision(Entity entity);
 
 	float GetDistance(Entity entity1, Entity entity2);
@@ -62,15 +62,6 @@ private:
 
 	int screenWidth = 1280;
 	int screenHeight = 720;
-
-
-	enum collisionDirection //Used in collision detection
-	{
-		Top,
-		Bottom,
-		Left,
-		Right
-	};
 
 	//SpriteSheets
 	std::vector<SpriteSheet> m_SpriteSheets;
