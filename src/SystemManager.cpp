@@ -106,6 +106,8 @@ void SystemManager::PhysicsUpdate(float dt)
 		else if(m_RegistryPtr->CheckEntityHasComponent<CircleCollider>(entity))
 		{
 			collisions = Circle_To_AABB_Collision(entity); 
+			if (collisions.size() != 0) { std::cout << "Collision!" << std::endl; } //Debug
+			else { std::cout << "No Collision" << std::endl; } //Debug
 			//add circle to circle
 		}
 
