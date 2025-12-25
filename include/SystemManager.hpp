@@ -46,9 +46,10 @@ public:
 
 	std::vector<std::pair<Entity,Vec2>> AABB_Collision(Entity entity);
 	std::vector<std::pair<Entity,Vec2>> Circle_To_AABB_Collision(Entity entity);
-	std::set<Entity> CircleCollision(Entity entity);
+	std::vector<std::pair<Entity, Vec2>> CircleCollision(Entity entity);
 
-	float GetDistance(Entity entity1, Entity entity2);
+	float GetDistanceSquared(Vec2 pos1, Vec2 pos2);
+	float GetDistance(Vec2 pos1, Vec2 pos2);
 	float Clamp(float value, float min, float max);
 	float GetVectorMagnitude(Vec2 vector);
 	float GetVectorMagnitudeSquared(Vec2 vector);

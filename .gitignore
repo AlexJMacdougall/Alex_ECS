@@ -1,5 +1,3 @@
-build/external/**
-build/build_files/**
-bin/**
+out/build/**
 .vs/**
 ECS_Clean.sln

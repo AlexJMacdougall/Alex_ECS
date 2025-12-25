@@ -27,7 +27,7 @@ protected:
 	Entity m_AttachedEntity;
 	
 	Registry* m_RegistryPtr;
-
+	/*
 	float GetDistance(Vec2 pos1, Vec2 pos2)
 	{
 		//Calculate x and y distance
@@ -38,7 +38,7 @@ protected:
 		float dist = sqrt((xDist * xDist) + (yDist * yDist));
 		return abs(dist);
 	}
-
+	*/
 	//Set of all entities made by this script so they can be destroyed when the script is deleted
 	std::set<Entity> m_InternalEntities;
 };

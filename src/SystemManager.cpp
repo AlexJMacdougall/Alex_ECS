@@ -37,7 +37,7 @@ void SystemManager::ResetGame()
 
 	Sprite playerSprite = Sprite{ {0,0},"TestTexture",0 };
 	//m_RegistryPtr->AddComponent<Sprite>(Player, playerSprite);
-	m_RegistryPtr->AddComponent<Sprite>(Player2, playerSprite);
+	//m_RegistryPtr->AddComponent<Sprite>(Player2, playerSprite);
 
 	PlayerScript *playerScript = new PlayerScript(Player,m_RegistryPtr);
 
@@ -50,8 +50,7 @@ void SystemManager::ResetGame()
 	m_RegistryPtr->AddComponent<Physics2D>(Player, playerPhysics);
 
 	m_RegistryPtr->AddComponent<CircleCollider>(Player, CircleCollider{16});
-	//m_RegistryPtr->AddComponent<BoxCollider>(Player, BoxCollider{32,32});
-	m_RegistryPtr->AddComponent<BoxCollider>(Player2, BoxCollider{32,32});
+	m_RegistryPtr->AddComponent<CircleCollider>(Player2, CircleCollider{16});
 }
 
 void SystemManager::Update(float dt)
@@ -60,13 +59,13 @@ void SystemManager::Update(float dt)
 	BeginMode2D(camera);
 	ClearBackground(WHITE);
 
+	Draw(); //Put draw back at bottom
+
 	RunScripts(dt);
 
 	PhysicsUpdate(dt);
 
 	Animate(dt);
-
-	Draw();
 
 	EndMode2D();
 	EndDrawing();//DEBUG, DELETE ME. UNCOMMENT IN DRAW FUNCTION
@@ -97,18 +96,19 @@ void SystemManager::PhysicsUpdate(float dt)
 		AddForce(entity, Vec2{ drag_X,drag_Y });
 
 		std::vector<std::pair<Entity, Vec2>> collisions;
+
 		//this is bad make it better
 		if(m_RegistryPtr->CheckEntityHasComponent<BoxCollider>(entity))
 		{
-			collisions = AABB_Collision(entity);
+			for (auto collision : AABB_Collision(entity)) { collisions.push_back(collision); }
 			//add box to circle collision here
 		}
 		else if(m_RegistryPtr->CheckEntityHasComponent<CircleCollider>(entity))
 		{
-			collisions = Circle_To_AABB_Collision(entity); 
+			for (auto collision : Circle_To_AABB_Collision(entity)) { collisions.push_back(collision); }
+			for (auto collision : CircleCollision(entity)) { collisions.push_back(collision); }
 			if (collisions.size() != 0) { std::cout << "Collision!" << std::endl; } //Debug
 			else { std::cout << "No Collision" << std::endl; } //Debug
-			//add circle to circle
 		}
 
 		//Check collisions
@@ -171,7 +171,7 @@ void SystemManager::PhysicsUpdate(float dt)
 
 std::vector<std::pair<Entity,Vec2>> SystemManager::AABB_Collision(Entity entity) 	//Returns a set of entities with AABB colliders that collide with the passed entity
 {
-	std::set collidableEntities = m_RegistryPtr->GetEntitiesWithComponent<BoxCollider>();
+	std::set<Entity> collidableEntities = m_RegistryPtr->GetEntitiesWithComponent<BoxCollider>();
 	collidableEntities.erase(entity); //Remove passed entity so it wont collide with itself
 
 	std::vector<std::pair<Entity, Vec2>> collidingEntities = {};
@@ -271,13 +271,11 @@ std::vector<std::pair<Entity, Vec2>> SystemManager::Circle_To_AABB_Collision(Ent
 		//Get point of collision by clamping difference vector to box extents then adding to box position
 		Vec2 collisionPoint = Vec2Add(Vec2{ Clamp(differenceVector.x,-halfBoxWidth,halfBoxWidth),Clamp(differenceVector.y,-halfBoxHeight,halfBoxHeight) },boxCentre);
 
-		DrawCircle(collisionPoint.x, collisionPoint.y, 1, BLUE);
-		DrawLine(circleCentre.x, circleCentre.y, collisionPoint.x, collisionPoint.y, GREEN);
+		//DrawCircle(collisionPoint.x, collisionPoint.y, 1, BLUE); //DEBUG
+		//DrawLine(circleCentre.x, circleCentre.y, collisionPoint.x, collisionPoint.y, GREEN); //DEBUG
 
 		//Get distance between point of collision and circle centre
 		float distanceToEdgeSquard = pow((collisionPoint.x - circleCentre.x), 2) + pow((collisionPoint.y - circleCentre.y), 2);
-
-		//std::cout << circleRadius << " " << distanceToEdgeSquard << std::endl;
 
 		//Check if distance to edge is less than radius
 		if(distanceToEdgeSquard <= pow(circleRadius,2))
@@ -289,23 +287,25 @@ std::vector<std::pair<Entity, Vec2>> SystemManager::Circle_To_AABB_Collision(Ent
 	return collidingEntities;
 }
 
-std::set<Entity> SystemManager::CircleCollision(Entity entity) //Returns a set of entities with Circle colliders that collide with the passed entity
+std::vector<std::pair<Entity, Vec2>> SystemManager::CircleCollision(Entity entity) //Returns a set of entities with Circle colliders that collide with the passed entity
 {
 	//NEED TO ADD DETECTING DIRECTION OF COLLISION 
-	std::set entities = m_RegistryPtr->GetEntitiesWithComponent<CircleCollider>();
+	std::set<Entity> entities = m_RegistryPtr->GetEntitiesWithComponent<CircleCollider>();
 	entities.erase(entity); //Remove passed entity so it wont collide with itself
 
-	std::set<Entity> collidingEntities = {};
+	std::vector<std::pair<Entity, Vec2>> collidingEntities = {};
 
-	auto collider1 = m_RegistryPtr->GetComponent<CircleCollider>(entity);
+	CircleCollider* collider1 = m_RegistryPtr->GetComponent<CircleCollider>(entity);
+	Vec2 pos1 = m_RegistryPtr->GetComponent<Transform2D>(entity)->position;
 
 	for (Entity colliderEntity : entities)
 	{
-		auto collider2 = m_RegistryPtr->GetComponent<CircleCollider>(colliderEntity);
+		CircleCollider* collider2 = m_RegistryPtr->GetComponent<CircleCollider>(colliderEntity);
+		Vec2 pos2 = m_RegistryPtr->GetComponent<Transform2D>(colliderEntity)->position;
 
-		if(GetDistance(entity,colliderEntity) < (collider1->radius + collider2->radius))
+		if(GetDistanceSquared(pos1,pos2) < pow(collider1->radius + collider2->radius,2))
 		{
-			collidingEntities.insert(colliderEntity);
+			collidingEntities.push_back(std::make_pair(colliderEntity,Vec2{0}));
 		}
 	}
 	return collidingEntities;
@@ -385,6 +385,9 @@ void SystemManager::Draw()
 	Vec2 playerPos = m_RegistryPtr->GetComponent<Transform2D>(0)->position;
 	DrawCircle(playerPos.x, playerPos.y, 16, GRAY);
 	DrawCircle(playerPos.x, playerPos.y, 1, RED);
+	Vec2 playerPos2 = m_RegistryPtr->GetComponent<Transform2D>(1)->position;
+	DrawCircle(playerPos2.x, playerPos2.y, 16, GRAY);
+	DrawCircle(playerPos2.x, playerPos2.y, 1, RED);
 	//TEST RAYCAST//
 	RayCast(Vec2{ 100,100 }, Vec2{ 500,500 }, 400, 1);
 	//DEBUG//
@@ -517,19 +520,19 @@ SpriteSheet* SystemManager::GetSpriteSheet(std::string ID)
 	assert(false);
 }
 
-float SystemManager::GetDistance(Entity entity1, Entity entity2)
+float SystemManager::GetDistanceSquared(Vec2 pos1, Vec2 pos2)
 {
-	//Get translations of both entities
-	auto pos1 =  m_RegistryPtr->GetComponent<Transform2D>(entity1)->position;
-	auto pos2 =  m_RegistryPtr->GetComponent<Transform2D>(entity2)->position;
-
 	//Calculate x and y distance
-	float xDist = pos1.x - pos2.x;
-	float yDist = pos1.y - pos2.y;
+	float xDist = pos2.x - pos1.x;
+	float yDist = pos2.y - pos1.y;
 
-	//Use pythagoras to calculate Distance
-	float dist = sqrt((xDist*xDist) + (yDist*yDist));
+	float dist = pow(xDist,2) + pow(yDist,2);
 	return dist;
+}
+
+float SystemManager::GetDistance(Vec2 pos1,Vec2 pos2)
+{
+	return sqrt(GetDistanceSquared(pos1, pos2));
 }
 
 float SystemManager::Clamp(float value, float min, float max)
