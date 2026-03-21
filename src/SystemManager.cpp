@@ -31,13 +31,16 @@ void SystemManager::ResetGame()
 {
 	Entity Player = m_RegistryPtr->CreateEntity("Player");
 	Entity Player2 = m_RegistryPtr->CreateEntity("Player2");
+	Entity Player3 = m_RegistryPtr->CreateEntity("Player2");
 
 	m_RegistryPtr->AddComponent<Transform2D>(Player, Transform2D{ Vec2{0,0},Vec2{1,1} });
 	m_RegistryPtr->AddComponent<Transform2D>(Player2, Transform2D{ Vec2{0,100},Vec2{1,1} });
+	m_RegistryPtr->AddComponent<Transform2D>(Player3, Transform2D{ Vec2{0,-100},Vec2{1,1} });
 
 	Sprite playerSprite = Sprite{ {0,0},"TestTexture",0 };
 	//m_RegistryPtr->AddComponent<Sprite>(Player, playerSprite);
 	//m_RegistryPtr->AddComponent<Sprite>(Player2, playerSprite);
+	m_RegistryPtr->AddComponent<Sprite>(Player3, playerSprite);
 
 	PlayerScript *playerScript = new PlayerScript(Player,m_RegistryPtr);
 
@@ -51,6 +54,7 @@ void SystemManager::ResetGame()
 
 	m_RegistryPtr->AddComponent<CircleCollider>(Player, CircleCollider{16});
 	m_RegistryPtr->AddComponent<CircleCollider>(Player2, CircleCollider{16});
+	m_RegistryPtr->AddComponent<BoxCollider>(Player3, BoxCollider{32,32});
 }
 
 void SystemManager::Update(float dt)
@@ -61,6 +65,8 @@ void SystemManager::Update(float dt)
 
 	Draw(); //Put draw back at bottom
 
+	GetNewEntities();
+
 	RunScripts(dt);
 
 	PhysicsUpdate(dt);
@@ -69,6 +75,14 @@ void SystemManager::Update(float dt)
 
 	EndMode2D();
 	EndDrawing();//DEBUG, DELETE ME. UNCOMMENT IN DRAW FUNCTION
+}
+
+void SystemManager::GetNewEntities()
+{
+	if (m_RegistryPtr->CheckForEntityChanges())
+	{
+		std::cout << "Here" << std::endl;
+	}
 }
 
 void SystemManager::PhysicsUpdate(float dt)
@@ -95,7 +109,7 @@ void SystemManager::PhysicsUpdate(float dt)
 		//Apply Drag
 		AddForce(entity, Vec2{ drag_X,drag_Y });
 
-		std::vector<std::pair<Entity, Vec2>> collisions;
+		std::vector<Entity> collisions;
 
 		//this is bad make it better
 		if(m_RegistryPtr->CheckEntityHasComponent<BoxCollider>(entity))
@@ -108,15 +122,17 @@ void SystemManager::PhysicsUpdate(float dt)
 			for (auto collision : Circle_To_AABB_Collision(entity)) { collisions.push_back(collision); }
 			for (auto collision : CircleCollision(entity)) { collisions.push_back(collision); }
 			if (collisions.size() != 0) { std::cout << "Collision!" << std::endl; } //Debug
-			else { std::cout << "No Collision" << std::endl; } //Debug
+			else { //std::cout << "No Collision" << std::endl; 
+			} //Debug
 		}
 
 		//Check collisions
 		if(collisions.size() != 0) //This is ugly make it better
 		{
-			for(std::pair<Entity, Vec2> collider : collisions)
+			for(Entity collider : collisions)
 			{
-				Vec2 collisionAxis = collider.second;
+				//Depreciated, ignore
+				//Vec2 collisionAxis = collider;
 				/*
 				switch (collisionAxis)
 				{
@@ -169,12 +185,12 @@ void SystemManager::PhysicsUpdate(float dt)
 }
 
 
-std::vector<std::pair<Entity,Vec2>> SystemManager::AABB_Collision(Entity entity) 	//Returns a set of entities with AABB colliders that collide with the passed entity
+std::vector<Entity> SystemManager::AABB_Collision(Entity entity) 	//Returns a set of entities with AABB colliders that collide with the passed entity
 {
 	std::set<Entity> collidableEntities = m_RegistryPtr->GetEntitiesWithComponent<BoxCollider>();
 	collidableEntities.erase(entity); //Remove passed entity so it wont collide with itself
 
-	std::vector<std::pair<Entity, Vec2>> collidingEntities = {};
+	std::vector<Entity> collidingEntities = {};
 
 	//Check passed entity has a box collider
 	assert(m_RegistryPtr->CheckEntityHasComponent<BoxCollider>(entity));
@@ -237,18 +253,18 @@ std::vector<std::pair<Entity,Vec2>> SystemManager::AABB_Collision(Entity entity)
 				assert(false); //If this assertion fails, none of the collision directions are true. This shouldn't happen on a collision
 			}*/
 
-		collidingEntities.push_back(std::make_pair(colliderEntity, Vec2{0,0}));
+		collidingEntities.push_back(colliderEntity);
 		}
 	}
 	return collidingEntities;
 }
 
-std::vector<std::pair<Entity, Vec2>> SystemManager::Circle_To_AABB_Collision(Entity entity) 
+std::vector<Entity> SystemManager::Circle_To_AABB_Collision(Entity entity) 
 {
 	std::set<Entity> collidableEntities = m_RegistryPtr->GetEntitiesWithComponent<BoxCollider>();
 	collidableEntities.erase(entity);//Remove passed entity so it wont collide with itself
 
-	std::vector<std::pair<Entity, Vec2>> collidingEntities = {};
+	std::vector<Entity> collidingEntities = {};
 
 	//Check passed entity has a circle collider
 	assert(m_RegistryPtr->CheckEntityHasComponent<CircleCollider>(entity));
@@ -280,20 +296,20 @@ std::vector<std::pair<Entity, Vec2>> SystemManager::Circle_To_AABB_Collision(Ent
 		//Check if distance to edge is less than radius
 		if(distanceToEdgeSquard <= pow(circleRadius,2))
 		{
-			collidingEntities.push_back(std::make_pair(colliderEntity, Vec2{0}));
+			collidingEntities.push_back(colliderEntity);
 		}
 	}
 
 	return collidingEntities;
 }
 
-std::vector<std::pair<Entity, Vec2>> SystemManager::CircleCollision(Entity entity) //Returns a set of entities with Circle colliders that collide with the passed entity
+std::vector<Entity> SystemManager::CircleCollision(Entity entity) //Returns a set of entities with Circle colliders that collide with the passed entity
 {
 	//NEED TO ADD DETECTING DIRECTION OF COLLISION 
 	std::set<Entity> entities = m_RegistryPtr->GetEntitiesWithComponent<CircleCollider>();
 	entities.erase(entity); //Remove passed entity so it wont collide with itself
 
-	std::vector<std::pair<Entity, Vec2>> collidingEntities = {};
+	std::vector<Entity> collidingEntities = {};
 
 	CircleCollider* collider1 = m_RegistryPtr->GetComponent<CircleCollider>(entity);
 	Vec2 pos1 = m_RegistryPtr->GetComponent<Transform2D>(entity)->position;
@@ -305,7 +321,7 @@ std::vector<std::pair<Entity, Vec2>> SystemManager::CircleCollision(Entity entit
 
 		if(GetDistanceSquared(pos1,pos2) < pow(collider1->radius + collider2->radius,2))
 		{
-			collidingEntities.push_back(std::make_pair(colliderEntity,Vec2{0}));
+			collidingEntities.push_back(colliderEntity);
 		}
 	}
 	return collidingEntities;

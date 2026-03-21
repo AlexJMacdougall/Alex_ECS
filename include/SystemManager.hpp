@@ -34,6 +34,7 @@ public:
 	void Draw();
 	void Animate(float dt);
 	void ResetGame();
+	void GetNewEntities();
 
 	SpriteSheet* GetSpriteSheet(std::string ID);
 
@@ -44,9 +45,9 @@ public:
 
 	Camera2D* GetCamera();
 
-	std::vector<std::pair<Entity,Vec2>> AABB_Collision(Entity entity);
-	std::vector<std::pair<Entity,Vec2>> Circle_To_AABB_Collision(Entity entity);
-	std::vector<std::pair<Entity, Vec2>> CircleCollision(Entity entity);
+	std::vector<Entity> AABB_Collision(Entity entity);
+	std::vector<Entity> Circle_To_AABB_Collision(Entity entity);
+	std::vector<Entity> CircleCollision(Entity entity);
 
 	float GetDistanceSquared(Vec2 pos1, Vec2 pos2);
 	float GetDistance(Vec2 pos1, Vec2 pos2);
