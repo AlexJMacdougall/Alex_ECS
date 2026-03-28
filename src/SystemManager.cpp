@@ -38,8 +38,7 @@ void SystemManager::ResetGame()
 	m_RegistryPtr->AddComponent<Transform2D>(Player3, Transform2D{ Vec2{0,-100},Vec2{1,1} });
 
 	Sprite playerSprite = Sprite{ {0,0},"TestTexture",0 };
-	//m_RegistryPtr->AddComponent<Sprite>(Player, playerSprite);
-	//m_RegistryPtr->AddComponent<Sprite>(Player2, playerSprite);
+
 	m_RegistryPtr->AddComponent<Sprite>(Player3, playerSprite);
 
 	PlayerScript *playerScript = new PlayerScript(Player,m_RegistryPtr);
@@ -126,43 +125,6 @@ void SystemManager::PhysicsUpdate(float dt)
 			} //Debug
 		}
 
-		//Check collisions
-		if(collisions.size() != 0) //This is ugly make it better
-		{
-			for(Entity collider : collisions)
-			{
-				//Depreciated, ignore
-				//Vec2 collisionAxis = collider;
-				/*
-				switch (collisionAxis)
-				{
-				case Top:
-					std::cout << "Top" << std::endl;
-					PhysObject->velocity.y = std::min(PhysObject->velocity.y, 0.0f);
-					PhysObject->force.y = std::min(PhysObject->force.y, 0.0f);
-					break;
-				case Bottom:
-					std::cout << "Bottom" << std::endl;
-					PhysObject->velocity.y = std::max(PhysObject->velocity.y, 0.0f);
-					PhysObject->force.y = std::max(PhysObject->force.y, 0.0f);
-					break;
-				case Left:
-					std::cout << "Left" << std::endl;
-					PhysObject->velocity.x = std::min(PhysObject->velocity.x, 0.0f);
-					PhysObject->force.x = std::min(PhysObject->force.x, 0.0f);
-					break;
-				case Right:
-					std::cout << "Right" << std::endl;
-					PhysObject->velocity.x = std::max(PhysObject->velocity.x, 0.0f);
-					PhysObject->force.x = std::max(PhysObject->force.x, 0.0f);
-					break;
-				default:
-					assert(false); //If this assertion fails, a valid collision direction was not returned
-					break;
-				}*/
-			}
-		}
-
 		//Calculate acceleration from force
 		PhysObject->acceleration.x = PhysObject->force.x / PhysObject->mass;
 		PhysObject->acceleration.y = PhysObject->force.y / PhysObject->mass;
@@ -174,7 +136,8 @@ void SystemManager::PhysicsUpdate(float dt)
 		//Update position
 		transform->position.x += PhysObject->velocity.x * dt;
 		transform->position.y += PhysObject->velocity.y * dt;
-		/*
+		
+		/* DEBUG
 		std::cout << "Vel: (" << PhysObject->velocity.x << ", " << PhysObject->velocity.y << ")"
 			<< "Acc: (" << PhysObject->acceleration.x << ", " << PhysObject->acceleration.y << ")"
 			<< "Force: (" << PhysObject->force.x << ", " << PhysObject->force.y << ")" << std::endl;
@@ -230,28 +193,6 @@ std::vector<Entity> SystemManager::AABB_Collision(Entity entity) 	//Returns a se
 			float bottomOverlap = abs(upper1 - lower2); //Overlap when collider1 is approaching from below collider 2
 
 			float minOverlapValue = std::min(std::min(rightOverlap, leftOverlap), std::min(topOverlap, bottomOverlap)); //Smallest overlap value is most recent, therefore is axis of collision
-			
-			/*
-			if(minOverlapValue == topOverlap) 
-			{
-				direction = Top;
-			}
-			else if(minOverlapValue == bottomOverlap)
-			{
-				direction = Bottom;
-			}
-			else if (minOverlapValue == rightOverlap)
-			{
-				direction = Right;
-			}
-			else if (minOverlapValue == leftOverlap)
-			{
-				direction = Left;
-			}
-			else
-			{
-				assert(false); //If this assertion fails, none of the collision directions are true. This shouldn't happen on a collision
-			}*/
 
 		collidingEntities.push_back(colliderEntity);
 		}
@@ -405,7 +346,7 @@ void SystemManager::Draw()
 	DrawCircle(playerPos2.x, playerPos2.y, 16, GRAY);
 	DrawCircle(playerPos2.x, playerPos2.y, 1, RED);
 	//TEST RAYCAST//
-	RayCast(Vec2{ 100,100 }, Vec2{ 500,500 }, 400, 1);
+	//RayCast(Vec2{ 100,100 }, Vec2{ 500,500 }, 400, 1);
 	//DEBUG//
 	
 	//EndMode2D();
