@@ -16,8 +16,18 @@ void PlayerScript::update(float dt)
 	
 	Physics2D* physicsComponent = m_RegistryPtr->GetComponent<Physics2D>(m_AttachedEntity);
 
-	physicsComponent->force.x += xMovementInput * playerMoveForce;
-	physicsComponent->force.y += yMovementInput * playerMoveForce;
+	physicsComponent->acceleration.x = xMovementInput * playerAcceleration;
+	physicsComponent->acceleration.y = yMovementInput * playerAcceleration;
+
+	//Set drag to zero while moving
+	if (xMovementInput != 0 || yMovementInput != 0)
+	{
+		physicsComponent->drag = 0;
+	}
+	else 
+	{
+		physicsComponent->drag = playerDrag;
+	}
 
 	/*
 	if(IsKeyPressed(KEY_SPACE))

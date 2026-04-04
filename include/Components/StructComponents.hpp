@@ -15,12 +15,11 @@ struct Transform2D
 
 struct Physics2D 
 {
-	float mass;
-	float drag;
+	float maxVelocity;
 	bool enableGravity = true;
+	float drag = 0.5;
 	Vec2 velocity = { 0,0 };
 	Vec2 acceleration = { 0,0 };
-	Vec2 force = { 0,0 };
 };
 
 struct Impulse

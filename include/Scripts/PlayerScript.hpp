@@ -9,6 +9,6 @@ public:
 	void PlayerScript::update(float dt) override;
 
 private:
-	float playerMoveForce = 1000;
-	float playerJumpForce = 100000;
+	float playerAcceleration = 300;
+	float playerDrag = 0.05;
 };

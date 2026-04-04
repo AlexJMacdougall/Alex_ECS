@@ -20,7 +20,6 @@ const int NUM_OF_LAYERS = 4;
 const int SPRITE_SIZE = 32;
 
 const float GRAVITY = 100.0f;
-const float AIR_DENSITY = 0.05f;
 
 class SystemManager
 {
@@ -37,8 +36,6 @@ public:
 	void GetNewEntities();
 
 	SpriteSheet* GetSpriteSheet(std::string ID);
-
-	void AddForce(Entity entity, Vec2 force);
 
 	float LinearInterp(float pos, Vec2 start, Vec2 end);
 	float RayCast(Vec2 start, Vec2 end,int steps,float radius);

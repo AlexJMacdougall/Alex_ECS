@@ -47,7 +47,7 @@ void SystemManager::ResetGame()
 	playerScriptComponent.attachScript<PlayerScript>(*playerScript);
 	m_RegistryPtr->AddComponent<ScriptComponent>(Player, playerScriptComponent);
 
-	Physics2D playerPhysics = Physics2D{ 10.0f, 100.0f, false };
+	Physics2D playerPhysics = Physics2D{ 200.0f, false };
 
 	m_RegistryPtr->AddComponent<Physics2D>(Player, playerPhysics);
 
@@ -96,18 +96,20 @@ void SystemManager::PhysicsUpdate(float dt)
 		Transform2D* transform = m_RegistryPtr->GetComponent<Transform2D>(entity);
 
 		//Calculate Weight
-		float weight = PhysObject->mass * GRAVITY;
+		//float weight = PhysObject->mass * GRAVITY;
 
 		//Apply weight 
-		if (PhysObject->enableGravity) { AddForce(entity, Vec2{ 0.0f,weight }); }
+		//if (PhysObject->enableGravity) { AddForce(entity, Vec2{ 0.0f,weight }); }
 
 		//Calculate drag
-		float drag_X = PhysObject->drag * -1 * (AIR_DENSITY * PhysObject->velocity.x) / 2;
-		float drag_Y = PhysObject->drag * -1 * (AIR_DENSITY * PhysObject->velocity.y) / 2;
+		float drag_X = PhysObject->drag * -1 * (PhysObject->velocity.x) / 2;
+		float drag_Y = PhysObject->drag * -1 * (PhysObject->velocity.y) / 2;
 
 		//Apply Drag
-		AddForce(entity, Vec2{ drag_X,drag_Y });
-
+		PhysObject->velocity.x += drag_X;
+		PhysObject->velocity.y += drag_Y;
+			
+		//Vector containing all colliding entities
 		std::vector<Entity> collisions;
 
 		//this is bad make it better
@@ -126,12 +128,16 @@ void SystemManager::PhysicsUpdate(float dt)
 		}
 
 		//Calculate acceleration from force
-		PhysObject->acceleration.x = PhysObject->force.x / PhysObject->mass;
-		PhysObject->acceleration.y = PhysObject->force.y / PhysObject->mass;
+		//PhysObject->acceleration.x = PhysObject->force.x / PhysObject->mass;
+		//PhysObject->acceleration.y = PhysObject->force.y / PhysObject->mass;
 
 		//Calculate Velocity from acceleration
 		PhysObject->velocity.x += PhysObject->acceleration.x * dt;
 		PhysObject->velocity.y += PhysObject->acceleration.y * dt;
+
+		//Clamp Velocity between -max and max
+		PhysObject->velocity.x = Clamp(PhysObject->velocity.x, -PhysObject->maxVelocity,PhysObject->maxVelocity);
+		PhysObject->velocity.y = Clamp(PhysObject->velocity.y, -PhysObject->maxVelocity,PhysObject->maxVelocity);
 
 		//Update position
 		transform->position.x += PhysObject->velocity.x * dt;
@@ -143,7 +149,7 @@ void SystemManager::PhysicsUpdate(float dt)
 			<< "Force: (" << PhysObject->force.x << ", " << PhysObject->force.y << ")" << std::endl;
 		*/
 
-		PhysObject->force = Vec2{ 0 }; //Reset temp forces
+		PhysObject->acceleration = Vec2{ 0 }; //Reset acceleration, so objects dont accelerate with no input
 	}
 }
 
@@ -505,13 +511,6 @@ float SystemManager::GetVectorMagnitude(Vec2 vector)
 float SystemManager::GetVectorMagnitudeSquared(Vec2 vector)
 {
 	return(pow(vector.x, 2) * pow(vector.y, 2));
-}
-
-void SystemManager::AddForce(Entity entity, Vec2 force)
-{
-	Physics2D* physicsComp = m_RegistryPtr->GetComponent<Physics2D>(entity);
-
-	physicsComp->force = Vec2Add(physicsComp->force, force);
 }
 
 Camera2D* SystemManager::GetCamera()
