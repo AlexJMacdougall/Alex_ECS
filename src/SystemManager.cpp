@@ -39,9 +39,11 @@ void SystemManager::ResetGame()
 
 	Sprite playerSprite = Sprite{ {0,0},"TestTexture",0 };
 
+	m_RegistryPtr->AddComponent<Sprite>(Player, playerSprite);
+	m_RegistryPtr->AddComponent<Sprite>(Player2, playerSprite);
 	m_RegistryPtr->AddComponent<Sprite>(Player3, playerSprite);
 
-	PlayerScript *playerScript = new PlayerScript(Player,m_RegistryPtr);
+	PlayerScript *playerScript = new PlayerScript(Player,m_RegistryPtr,&camera);
 
 	ScriptComponent playerScriptComponent;
 	playerScriptComponent.attachScript<PlayerScript>(*playerScript);
@@ -51,19 +53,13 @@ void SystemManager::ResetGame()
 
 	m_RegistryPtr->AddComponent<Physics2D>(Player, playerPhysics);
 
-	m_RegistryPtr->AddComponent<CircleCollider>(Player, CircleCollider{16});
-	m_RegistryPtr->AddComponent<CircleCollider>(Player2, CircleCollider{16});
+	m_RegistryPtr->AddComponent<BoxCollider>(Player, BoxCollider{32,32});
+	m_RegistryPtr->AddComponent<BoxCollider>(Player2, BoxCollider{32,32});
 	m_RegistryPtr->AddComponent<BoxCollider>(Player3, BoxCollider{32,32});
 }
 
 void SystemManager::Update(float dt)
 {
-	BeginDrawing();//DEBUG, DELETE ME. UNCOMMENT IN DRAW FUNCTION
-	BeginMode2D(camera);
-	ClearBackground(WHITE);
-
-	Draw(); //Put draw back at bottom
-
 	GetNewEntities();
 
 	RunScripts(dt);
@@ -72,8 +68,7 @@ void SystemManager::Update(float dt)
 
 	Animate(dt);
 
-	EndMode2D();
-	EndDrawing();//DEBUG, DELETE ME. UNCOMMENT IN DRAW FUNCTION
+	Draw();
 }
 
 void SystemManager::GetNewEntities()
@@ -122,14 +117,13 @@ void SystemManager::PhysicsUpdate(float dt)
 		{
 			for (auto collision : Circle_To_AABB_Collision(entity)) { collisions.push_back(collision); }
 			for (auto collision : CircleCollision(entity)) { collisions.push_back(collision); }
-			if (collisions.size() != 0) { std::cout << "Collision!" << std::endl; } //Debug
-			else { //std::cout << "No Collision" << std::endl; 
-			} //Debug
-		}
+		} 
 
-		//Calculate acceleration from force
-		//PhysObject->acceleration.x = PhysObject->force.x / PhysObject->mass;
-		//PhysObject->acceleration.y = PhysObject->force.y / PhysObject->mass;
+		//If the entity has collided and has trigger enabled, call it's "onCollision" function
+		if(collisions.size() != 0 && PhysObject->enableTrigger)
+		{
+			if (m_RegistryPtr->CheckEntityHasComponent<ScriptComponent>(entity)){m_RegistryPtr->GetComponent<ScriptComponent>(entity)->onCollision(collisions);}
+		}
 
 		//Calculate Velocity from acceleration
 		PhysObject->velocity.x += PhysObject->acceleration.x * dt;
@@ -146,7 +140,6 @@ void SystemManager::PhysicsUpdate(float dt)
 		/* DEBUG
 		std::cout << "Vel: (" << PhysObject->velocity.x << ", " << PhysObject->velocity.y << ")"
 			<< "Acc: (" << PhysObject->acceleration.x << ", " << PhysObject->acceleration.y << ")"
-			<< "Force: (" << PhysObject->force.x << ", " << PhysObject->force.y << ")" << std::endl;
 		*/
 
 		PhysObject->acceleration = Vec2{ 0 }; //Reset acceleration, so objects dont accelerate with no input
@@ -288,11 +281,11 @@ void SystemManager::RunScripts(float dt)
 
 void SystemManager::Draw()
 {
-	//BeginDrawing();
+	BeginDrawing();
 
-	//ClearBackground(WHITE);
+	ClearBackground(WHITE);
 
-	//BeginMode2D(camera);
+	BeginMode2D(camera);
 
 	//Get entities that are drawable
 	std::set<Entity> entities = m_RegistryPtr->GetEntitiesWithComponent<Sprite>();
@@ -343,20 +336,8 @@ void SystemManager::Draw()
 			}
 		}
 	}
-	//DEBUG//
-	//DRAWING TEMP PLAYER//
-	Vec2 playerPos = m_RegistryPtr->GetComponent<Transform2D>(0)->position;
-	DrawCircle(playerPos.x, playerPos.y, 16, GRAY);
-	DrawCircle(playerPos.x, playerPos.y, 1, RED);
-	Vec2 playerPos2 = m_RegistryPtr->GetComponent<Transform2D>(1)->position;
-	DrawCircle(playerPos2.x, playerPos2.y, 16, GRAY);
-	DrawCircle(playerPos2.x, playerPos2.y, 1, RED);
-	//TEST RAYCAST//
-	//RayCast(Vec2{ 100,100 }, Vec2{ 500,500 }, 400, 1);
-	//DEBUG//
-	
-	//EndMode2D();
-	//EndDrawing();
+	EndMode2D();
+	EndDrawing();
 }
 
 void SystemManager::Animate(float dt)

@@ -17,6 +17,8 @@ struct Physics2D
 {
 	float maxVelocity;
 	bool enableGravity = true;
+	bool enableCollision = true; //This object will block other objects on collision
+	bool enableTrigger = true; //This object will not block other objects but call it's onCollision function on collision
 	float drag = 0.5;
 	Vec2 velocity = { 0,0 };
 	Vec2 acceleration = { 0,0 };

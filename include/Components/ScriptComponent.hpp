@@ -23,6 +23,8 @@ public:
 	}
 
 	virtual void update(float dt) = 0;
+	virtual void onCollision(std::vector<Entity> collisions) = 0;
+
 protected:
 	Entity m_AttachedEntity;
 	
@@ -50,6 +52,9 @@ public:
 	ScriptComponent() = default;
 
 	void update(float dt) { if (m_Script) { m_Script->update(dt); } }; //Runs attached script's update function
+
+	void onCollision(std::vector<Entity> collisions) { if (m_Script) { m_Script->onCollision(collisions); }
+}; //Runs attached script's update function
 
 	template<typename T,typename ... Args>
 	void attachScript(Args&& ...args)

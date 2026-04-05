@@ -1,9 +1,9 @@
 #include "Scripts/PlayerScript.hpp"
 
-PlayerScript::PlayerScript(Entity entity,Registry* registryPtr):
+PlayerScript::PlayerScript(Entity entity,Registry* registryPtr, Camera2D* Camera):
 	Script(entity,registryPtr)
 {
-
+	cameraPtr = Camera;
 }
 
 void PlayerScript::update(float dt)
@@ -28,11 +28,13 @@ void PlayerScript::update(float dt)
 	{
 		physicsComponent->drag = playerDrag;
 	}
+	
+	//Update camera pos
+	Vec2 playerPos = m_RegistryPtr->GetComponent<Transform2D>(m_AttachedEntity)->position;
+	cameraPtr->target = Vector2{playerPos.x, playerPos.y };
+}
 
-	/*
-	if(IsKeyPressed(KEY_SPACE))
-	{
-		physicsComponent->force.y -= playerJumpForce;
-	}
-	*/
+void PlayerScript::onCollision(std::vector<Entity> collisions)
+{
+	if (collisions.size() != 0) { std::cout << "Collision!" << std::endl; }
 }
