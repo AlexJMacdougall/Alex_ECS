@@ -24,7 +24,7 @@ int main()
 	//Set up Registry and SystemManager
 	Registry REGISTRY;
 	REGISTRY.RegisterComponent<Transform2D>();
-	REGISTRY.RegisterComponent<Navmesh>();
+	REGISTRY.RegisterComponent<Tile>();
 	REGISTRY.RegisterComponent<Sprite>();
 	REGISTRY.RegisterComponent<AnimatedSprite>();
 	REGISTRY.RegisterComponent<ScriptComponent>();

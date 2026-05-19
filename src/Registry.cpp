@@ -31,9 +31,6 @@ Entity Registry::CreateEntity(std::string tag)
 
 	m_EntityCount += 1;
 
-	//Set flag variable to true
-	entityChanged = true;
-
 	return entity;
 }
 
@@ -73,14 +70,4 @@ Signature Registry::GetSignature(Entity entity)
 std::string Registry::GetTag(Entity entity)
 {
 	return m_Tags->at(entity);
-}
-
-bool Registry::CheckForEntityChanges()
-{
-	if (entityChanged)
-	{
-		entityChanged = false;
-		return true;
-	}
-	return false;
 }

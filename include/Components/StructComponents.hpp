@@ -74,6 +74,9 @@ struct AnimatedSprite {
 	bool finishedAnimation = false;
 };
 
-struct Navmesh {
-	Vec2 pos;
+struct Tile {
+	Vec2 pos; //Position in the tilemap
+	bool isObsticle; //If this tile should be a collision obsticle
+	Vec2 UV; //The UV of the sprite for this tile
+	std::string SpriteSheetID; //Spritesheet for this tile
 };

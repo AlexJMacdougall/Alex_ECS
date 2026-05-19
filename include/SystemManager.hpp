@@ -10,6 +10,7 @@
 
 #include "Registry.hpp"
 #include "Components/ScriptComponent.hpp"
+#include "Tilemap.hpp"
 
 #include "Scripts/PlayerScript.hpp"
 
@@ -33,7 +34,6 @@ public:
 	void Draw();
 	void Animate(float dt);
 	void ResetGame();
-	void GetNewEntities();
 
 	SpriteSheet* GetSpriteSheet(std::string ID);
 

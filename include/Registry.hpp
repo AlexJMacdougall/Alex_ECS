@@ -73,8 +73,6 @@ private:
 
 	//Counter variable used to assign component type variables
 	ComponentType mNextComponentType;
-
-	bool entityChanged = false; //When any changes are made to an entity; this variable is set to true
 };
 
 template<typename T>
@@ -90,9 +88,6 @@ inline void Registry::AddComponent(Entity entity,T component)
 
 	//Update entity signature
 	m_Signatures->at(entity).set(m_typenameToComponentTypes[typeName], true);
-
-	//Set flag variable to true
-	entityChanged = true;
 }
 
 template<typename T>
@@ -106,9 +101,6 @@ inline void Registry::RemoveComponent(Entity entity)
 
 	//Update entity signature
 	m_Signatures->at(entity).set(m_typenameToComponentTypes[typeName], false);
-
-	//Set flag variable to true
-	entityChanged = true; 
 }
 
 template<typename T>

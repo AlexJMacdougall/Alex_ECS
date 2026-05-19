@@ -56,12 +56,12 @@ void SystemManager::ResetGame()
 	m_RegistryPtr->AddComponent<BoxCollider>(Player, BoxCollider{32,32});
 	m_RegistryPtr->AddComponent<BoxCollider>(Player2, BoxCollider{32,32});
 	m_RegistryPtr->AddComponent<BoxCollider>(Player3, BoxCollider{32,32});
+
+	TileMap test = TileMap(m_RegistryPtr, Vec2{ 0 }, SPRITE_SIZE);
 }
 
 void SystemManager::Update(float dt)
 {
-	GetNewEntities();
-
 	RunScripts(dt);
 
 	PhysicsUpdate(dt);
@@ -69,14 +69,6 @@ void SystemManager::Update(float dt)
 	Animate(dt);
 
 	Draw();
-}
-
-void SystemManager::GetNewEntities()
-{
-	if (m_RegistryPtr->CheckForEntityChanges())
-	{
-		std::cout << "Here" << std::endl;
-	}
 }
 
 void SystemManager::PhysicsUpdate(float dt)
