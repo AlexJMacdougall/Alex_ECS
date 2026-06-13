@@ -57,7 +57,7 @@ void SystemManager::ResetGame()
 	m_RegistryPtr->AddComponent<BoxCollider>(Player2, BoxCollider{32,32});
 	m_RegistryPtr->AddComponent<BoxCollider>(Player3, BoxCollider{32,32});
 
-	TileMap test = TileMap(m_RegistryPtr, Vec2{ 0 }, SPRITE_SIZE);
+	TileMap test = TileMap(m_RegistryPtr, Vec2{ 0 },Vec2{ 0 },&m_SpriteSheets[0], SPRITE_SIZE);
 }
 
 void SystemManager::Update(float dt)
